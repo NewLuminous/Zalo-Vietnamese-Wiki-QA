@@ -7,7 +7,7 @@ class DataLoader:
 
 class ZaloLoader(DataLoader):
     def read_json(self, filepath, simplify=False):
-        with open(filepath) as file:
+        with open(filepath, encoding='utf-8') as file:
             inp = json.load(file)
 
         self.data = self.data.append(pd.DataFrame(inp))
