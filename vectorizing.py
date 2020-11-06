@@ -18,7 +18,7 @@ class Word2Vec:
             self.model = gensim.models.Word2Vec.load("saved_models/word2vec_news.model")
         return self
 
-    def vectorize_sentence(self, sentence, minlen=None):
+    def vectorize_sentence(self, sentence, minlen=None, maxlen=None):
         sentence = self.tokenizer(self.preprocessor(sentence))
         embs = []
         for token in sentence:
@@ -33,12 +33,16 @@ class Word2Vec:
             d = np.copy(embs)
             for i in range(int(paddings)):
                 embs = np.concatenate((embs, d))
-            embs = embs[0: minlen]
+                
+        if maxlen is not None and embs.shape[0] > maxlen:
+            embs = embs[0: maxlen]
 
-        return embs.flatten()
+        return embs
 
-    def transform(self, sentences, minlen=None):
-        return sentences.apply(lambda x: self.vectorize_sentence(x, minlen))
+    def transform(self, sentences, minlen=None, maxlen=None):
+        if self.model is None:
+            self.fit(sentences)
+        return sentences.apply(lambda x: self.vectorize_sentence(x, minlen, maxlen))
 
 def get_vectorizer(vectorizer='tfidf'):
     if vectorizer == 'count':
