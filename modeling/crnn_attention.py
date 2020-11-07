@@ -5,16 +5,16 @@ import vectorizing
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, Bidirectional, concatenate, Dropout
+from tensorflow.keras.layers import Input, Dense, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, Bidirectional, Multiply, concatenate, Dropout
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 
-class CRNN:
+class AttentionCRNN:
     MIN_LENGTH_QUESTION = 20
     MIN_LENGTH_ANSWER = 64
 
-    def __init__(self, question_encoder_shape=20, answer_encoder_shape=70, learning_rate=0.001):
+    def __init__(self, question_encoder_shape=64, answer_encoder_shape=64, learning_rate=0.001):
         self.vectorizer = vectorizing.get_vectorizer('word2vec')
         self.num_features = 50
         self.question_encoder_shape = question_encoder_shape
@@ -28,24 +28,26 @@ class CRNN:
     def build_model(self):
         input_question = Input(shape = (None, self.num_features))
         input_ans = Input(shape = (None, self.num_features))
-
-        conv1d_1 = Conv1D(200, 5, activation = "tanh", kernel_regularizer = l2(0.0001))(input_question)
-        max_pooling_1 = MaxPooling1D()(conv1d_1)
-        question_encoder = Bidirectional(LSTM(self.question_encoder_shape, ))(max_pooling_1)
         
-        conv1d_2 = Conv1D(400, 5, activation = "tanh", kernel_regularizer = l2(0.0001))(input_ans)
-        max_pooling_2 = MaxPooling1D()(conv1d_2)
-        conv1d_3 = Conv1D(600, 5, activation = "tanh", kernel_regularizer = l2(0.0001))(max_pooling_2)
-        max_pooling_3 = MaxPooling1D()(conv1d_3)
-        answer_encoder = Bidirectional(LSTM(self.answer_encoder_shape))(max_pooling_3)
+        with tf.name_scope("question_encoder"):
+            question_encoder = Bidirectional(LSTM(self.question_encoder_shape))(input_question)
+            question_attention = Dense(2 * self.question_encoder_shape, activation = 'softmax')(question_encoder)
+            question_attention = Multiply()([question_encoder, question_attention])
+            
+        with tf.name_scope("answer_encoder"):
+            conv1d_2 = Conv1D(128, 5, activation = "tanh")(input_ans)
+            max_pooling_2 = MaxPooling1D()(conv1d_2)
+            conv1d_3 = Conv1D(128, 5, activation = "tanh")(max_pooling_2)
+            max_pooling_3 = MaxPooling1D()(conv1d_3)
+            answer_encoder = Bidirectional(LSTM(self.answer_encoder_shape))(max_pooling_3) 
+            answer_attention = Dense(2 * self.answer_encoder_shape, activation = 'softmax')(answer_encoder)
+            answer_attention = Multiply()([answer_encoder, answer_attention])
         
-        merge = concatenate([question_encoder, answer_encoder])
+        merge = concatenate([question_attention, answer_attention], axis = 1)
         
         dense_1 = Dense(128, activation = "relu")(merge)
-        dropout_1 = Dropout(0.25)(dense_1)
-        dense_2 = Dense(256, activation = "relu")(dropout_1)
-        dropout_2 = Dropout(0.25)(dense_2)
-        dense_3 = Dense(1, activation ="sigmoid")(dropout_2)
+        dropout_1 = Dropout(0.5)(dense_1)
+        dense_3 = Dense(1, activation ="sigmoid")(dropout_1)
 
         model = Model(inputs = [input_question, input_ans], outputs = dense_3)
         model.compile(optimizer = Adam(self.learning_rate), loss = "binary_crossentropy", metrics = ["acc"])
@@ -54,7 +56,7 @@ class CRNN:
         return model
         
     def plot(self):
-        tf.keras.utils.plot_model(self.model, to_file='modeling/crnn.png', show_shapes=True, show_layer_names=True)
+        tf.keras.utils.plot_model(self.model, to_file='modeling/crnn_attention.png', show_shapes=True, show_layer_names=True)
         
     def DataGenerator(self, X, y):
         i = 0

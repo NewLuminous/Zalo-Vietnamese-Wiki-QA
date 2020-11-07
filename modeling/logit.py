@@ -13,19 +13,19 @@ class Logit:
         return LogisticRegression(random_state=random_state)
 
     def fit(self, X, y):
-        X = transforming.concatenate_after_vectorizing_qa(X, self.vectorizer)
+        X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer)
         self.model.fit(X, y)
 
     def predict(self, X):
         if type(X) is not pd.DataFrame:
             X = pd.DataFrame(np.reshape(X, (-1, 2)), columns=['question', 'answer'])
     
-        X = transforming.concatenate_after_vectorizing_qa(X, self.vectorizer, do_fit_vectorizer=False)
+        X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer, do_fit_vectorizer=False)
         return self.model.predict(X)
 
     def predict_proba(self, X):
         if type(X) is not pd.DataFrame:
             X = pd.DataFrame(np.reshape(X, (-1, 2)), columns=['question', 'answer'])
             
-        X = transforming.concatenate_after_vectorizing_qa(X, self.vectorizer, do_fit_vectorizer=False)
+        X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer, do_fit_vectorizer=False)
         return self.model.predict_proba(X)

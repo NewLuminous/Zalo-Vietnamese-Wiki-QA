@@ -2,7 +2,7 @@ import vectorizing
 import numpy as np
 from scipy import sparse
 
-def concatenate_after_vectorizing(df, vectorizer, do_fit_vectorizer=True):
+def vectorize_and_concatenate(df, vectorizer, do_fit_vectorizer=True):
     if do_fit_vectorizer:
         for column in df.columns:
             vectorizer.fit(df[column])
@@ -12,7 +12,7 @@ def concatenate_after_vectorizing(df, vectorizer, do_fit_vectorizer=True):
         df_new = sparse.hstack([df_new, vectorizer.transform(df[column])])
     return df_new
     
-def concatenate_after_vectorizing_qa(df, vectorizer, do_fit_vectorizer=True):
+def vectorize_and_concatenate_qa(df, vectorizer, do_fit_vectorizer=True):
     if type(vectorizer) is vectorizing.Word2Vec:
         if do_fit_vectorizer:
             for column in df.columns:
@@ -24,4 +24,4 @@ def concatenate_after_vectorizing_qa(df, vectorizer, do_fit_vectorizer=True):
         df_answer_flat = np.vstack(df_answer_embs.apply(lambda row: row.flatten()))
         return np.hstack([df_question_flat, df_answer_flat])
     else:
-        return concatenate_after_vectorizing(df, vectorizer, do_fit_vectorizer)
+        return vectorize_and_concatenate(df, vectorizer, do_fit_vectorizer)

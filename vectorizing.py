@@ -25,7 +25,8 @@ class Word2Vec:
             if token in self.model.wv:
                 embs.append(self.model.wv[token])
             else:
-                embs.append(np.zeros(self.model.vector_size))
+                #embs.append(np.zeros(self.model.vector_size))
+                embs.append(self.model.wv['&'])
 
         embs = np.array(embs)
         if minlen is not None and embs.shape[0] < minlen:
@@ -33,6 +34,7 @@ class Word2Vec:
             d = np.copy(embs)
             for i in range(int(paddings)):
                 embs = np.concatenate((embs, d))
+            embs = embs[0: minlen]
                 
         if maxlen is not None and embs.shape[0] > maxlen:
             embs = embs[0: maxlen]
