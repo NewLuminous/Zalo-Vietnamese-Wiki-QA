@@ -1,5 +1,7 @@
 import vectorizing
 import transforming
+import numpy as np
+import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
 class Logit:
@@ -11,13 +13,19 @@ class Logit:
         return LogisticRegression(random_state=random_state)
 
     def fit(self, X, y):
-        X = transforming.concatenate_after_vectorizing(X, self.vectorizer)
+        X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer)
         self.model.fit(X, y)
 
     def predict(self, X):
-        X = transforming.concatenate_after_vectorizing(X, self.vectorizer, do_fit_vectorizer=False)
+        if type(X) is not pd.DataFrame:
+            X = pd.DataFrame(np.reshape(X, (-1, 2)), columns=['question', 'answer'])
+    
+        X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer, do_fit_vectorizer=False)
         return self.model.predict(X)
 
     def predict_proba(self, X):
-        X = transforming.concatenate_after_vectorizing(X, self.vectorizer, do_fit_vectorizer=False)
+        if type(X) is not pd.DataFrame:
+            X = pd.DataFrame(np.reshape(X, (-1, 2)), columns=['question', 'answer'])
+            
+        X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer, do_fit_vectorizer=False)
         return self.model.predict_proba(X)
