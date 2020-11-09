@@ -77,7 +77,7 @@ class CRNN:
             yield [np.array(X_question_embs), np.array(X_text_embs)], np.array(y_batch)
 
     def fit(self, X, y):
-        X_train, X_val, y_train, y_val = train_test_split(X, y)
+        X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=42)
         train_generator = self.DataGenerator(X_train, y_train)
         validation_generator = self.DataGenerator(X_val, y_val)
 

@@ -1,8 +1,8 @@
 import pandas as pd
 import json
-from googletrans import Translator
+from utils.translating import GoogleTranslator
 
-SOURCES = ['zaloai', 'squad', 'mailong25']
+SOURCES = ['zaloai', 'squad', 'mailong25', 'facebook']
 
 class QADataLoader:
     def __init__(self):
@@ -26,14 +26,15 @@ class ZaloLoader(QADataLoader):
         if simplify:
             return self.simplify_dataset()
         return self.data
-        
+            
 class SquadLoader(QADataLoader):
-    def read_json(self, filepath, simplify=False, translate_to_vn=False):
+    def __init__(self):
+        super().__init__()
+        self.translator = GoogleTranslator(src='en', dest='vi')
+
+    def read_json(self, filepath, version=2, simplify=False, translate_to_vn=False):
         with open(filepath, encoding='utf-8') as file:
             inp = json.load(file)
-            
-        if translate_to_vn:
-            translator = Translator()
             
         data = []
         for case in inp['data']:
@@ -42,7 +43,7 @@ class SquadLoader(QADataLoader):
                 
             title = case['title']
             if translate_to_vn:
-                title = translator.translate(title, src='en', dest='vi').text
+                title = self.translator.translate(title)
             
             paragraphs = case['paragraphs']
             for paragraph in paragraphs:
@@ -51,19 +52,23 @@ class SquadLoader(QADataLoader):
                     
                 context = paragraph['context']
                 if translate_to_vn:
-                    context = translator.translate(context, src='en', dest='vi').text
+                    context = self.translator.translate(context, patience_lim=100)
                     
                 qas = paragraph['qas']
                 for qa in qas:
-                    if set(qa) != {'answers', 'id', 'question', 'is_impossible', 'plausible_answers'} \
-                    and set(qa) != {'answers', 'id', 'question', 'is_impossible'}:
-                        raise Exception(f"Wrong format: {set(qa)}")
+                    if version == 1:
+                        if set(qa) != {'answers', 'id', 'question'}:
+                            raise Exception(f"Wrong format: {set(qa)}")
+                    else:
+                        if set(qa) != {'answers', 'id', 'question', 'is_impossible', 'plausible_answers'} \
+                        and set(qa) != {'answers', 'id', 'question', 'is_impossible'}:
+                            raise Exception(f"Wrong format: {set(qa)}")
                         
                     series = pd.Series()
                     series['id'] = qa['id']
                     series['question'] = qa['question']
                     if translate_to_vn:
-                        series['question'] = translator.translate(series['question'], src='en', dest='vi').text
+                        series['question'] = self.translator.translate(series['question'], patience_lim=100)
                     
                     series['title'] = title
                     series['text'] = context
@@ -75,7 +80,7 @@ class SquadLoader(QADataLoader):
                     else:
                         series['answer'] = None
                         
-                    series['label'] = not qa['is_impossible']
+                    series['label'] = True if version == 1 else not qa['is_impossible']
                         
                     data.append(series)
                         
@@ -90,8 +95,15 @@ def load(src=['zaloai']):
         if source == 'zaloai':
             dataset = dataset.append(ZaloLoader().read_csv("data/zaloai/train.csv", simplify=True))
         elif source == 'squad':
-            dataset = dataset.append(SquadLoader().read_json("data/squad/train-v2.0.json", simplify=True))
+            dataset = dataset.append(SquadLoader().read_csv("data/squad/train-v2.0_part_1.csv", simplify=True))
+            dataset = dataset.append(SquadLoader().read_csv("data/squad/train-v2.0_part_2.csv", simplify=True))
+            dataset = dataset.append(SquadLoader().read_csv("data/squad/dev-v2.0.csv", simplify=True))
         elif source == 'mailong25':
             dataset = dataset.append(SquadLoader().read_csv("data/mailong25/squad-v2.0-mailong25.csv", simplify=True))
+        elif source == 'facebook':
+            dataset = dataset.append(SquadLoader().read_csv("data/facebook/test-context-vi-question-vi_fb.csv", simplify=True))
+            dataset = dataset.append(SquadLoader().read_csv("data/facebook/dev-context-vi-question-vi_fb.csv", simplify=True))
+        else:
+            raise Exception(f"Source '{source}' not found. Try 'utils.data_loading.SOURCES' for available sources.")
     
     return dataset
