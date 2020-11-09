@@ -12,13 +12,13 @@ from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStoppi
 
 class AttentionCRNN:
     MIN_LENGTH_QUESTION = 20
-    MIN_LENGTH_ANSWER = 64
+    MIN_LENGTH_TEXT = 64
 
-    def __init__(self, question_encoder_shape=64, answer_encoder_shape=64, learning_rate=0.001):
+    def __init__(self, question_encoder_shape=64, text_encoder_shape=64, learning_rate=0.001):
         self.vectorizer = vectorizing.get_vectorizer('word2vec')
         self.num_features = 50
         self.question_encoder_shape = question_encoder_shape
-        self.answer_encoder_shape = answer_encoder_shape
+        self.text_encoder_shape = text_encoder_shape
         # Tensorflow currently does not support Tensors with different lengths along a dimension.
         self.batch_size = 1
         self.learning_rate = learning_rate
@@ -34,16 +34,16 @@ class AttentionCRNN:
             question_attention = Dense(2 * self.question_encoder_shape, activation = 'softmax')(question_encoder)
             question_attention = Multiply()([question_encoder, question_attention])
             
-        with tf.name_scope("answer_encoder"):
+        with tf.name_scope("text_encoder"):
             conv1d_2 = Conv1D(128, 5, activation = "tanh")(input_ans)
             max_pooling_2 = MaxPooling1D()(conv1d_2)
             conv1d_3 = Conv1D(128, 5, activation = "tanh")(max_pooling_2)
             max_pooling_3 = MaxPooling1D()(conv1d_3)
-            answer_encoder = Bidirectional(LSTM(self.answer_encoder_shape))(max_pooling_3) 
-            answer_attention = Dense(2 * self.answer_encoder_shape, activation = 'softmax')(answer_encoder)
-            answer_attention = Multiply()([answer_encoder, answer_attention])
+            text_encoder = Bidirectional(LSTM(self.text_encoder_shape))(max_pooling_3) 
+            text_attention = Dense(2 * self.text_encoder_shape, activation = 'softmax')(text_encoder)
+            text_attention = Multiply()([text_encoder, text_attention])
         
-        merge = concatenate([question_attention, answer_attention], axis = 1)
+        merge = concatenate([question_attention, text_attention], axis = 1)
         
         dense_1 = Dense(128, activation = "relu")(merge)
         dropout_1 = Dropout(0.5)(dense_1)
@@ -66,20 +66,20 @@ class AttentionCRNN:
                 
             batch_size = min(self.batch_size, len(X) - i)
             X_question = X.iloc[i: i + batch_size]['question']
-            X_answer = X.iloc[i: i + batch_size]['answer']
+            X_text = X.iloc[i: i + batch_size]['text']
             y_batch = y.iloc[i: i + batch_size]
             self.vectorizer.fit(X_question)
-            self.vectorizer.fit(X_answer)
+            self.vectorizer.fit(X_text)
             X_question_embs = self.vectorizer.transform(X_question, minlen=self.MIN_LENGTH_QUESTION)
-            X_answer_embs = self.vectorizer.transform(X_answer, minlen=self.MIN_LENGTH_ANSWER)
+            X_text_embs = self.vectorizer.transform(X_text, minlen=self.MIN_LENGTH_TEXT)
             if batch_size == 1:
                 X_question_embs = np.expand_dims(np.array(X_question_embs)[0], axis=0)
-                X_answer_embs = np.expand_dims(np.array(X_answer_embs)[0], axis=0)
+                X_text_embs = np.expand_dims(np.array(X_text_embs)[0], axis=0)
             i += batch_size
-            yield [np.array(X_question_embs), np.array(X_answer_embs)], np.array(y_batch)
+            yield [np.array(X_question_embs), np.array(X_text_embs)], np.array(y_batch)
 
     def fit(self, X, y):
-        X_train, X_val, y_train, y_val = train_test_split(X, y)
+        X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=42)
         train_generator = self.DataGenerator(X_train, y_train)
         validation_generator = self.DataGenerator(X_val, y_val)
 
@@ -101,12 +101,12 @@ class AttentionCRNN:
 
     def predict_proba(self, X):
         if type(X) is not pd.DataFrame:
-            X = pd.DataFrame(np.reshape(X, (-1, 2)), columns=['question', 'answer'])
+            X = pd.DataFrame(np.reshape(X, (-1, 2)), columns=['question', 'text'])
             
         X_question_embs = self.vectorizer.transform(X['question'], minlen=self.MIN_LENGTH_QUESTION)
-        X_answer_embs = self.vectorizer.transform(X['answer'], minlen=self.MIN_LENGTH_ANSWER)
+        X_text_embs = self.vectorizer.transform(X['text'], minlen=self.MIN_LENGTH_TEXT)
         X_question_embs = X_question_embs.apply(lambda row: np.expand_dims(np.array(row), axis=0))
-        X_answer_embs = X_answer_embs.apply(lambda row: np.expand_dims(np.array(row), axis=0))
-        X_embs = pd.concat([X_question_embs, X_answer_embs], axis=1)
-        y = X_embs.apply(lambda row: self.model.predict([row['question'], row['answer']])[0], axis=1)
+        X_text_embs = X_text_embs.apply(lambda row: np.expand_dims(np.array(row), axis=0))
+        X_embs = pd.concat([X_question_embs, X_text_embs], axis=1)
+        y = X_embs.apply(lambda row: self.model.predict([row['question'], row['text']])[0], axis=1)
         return y

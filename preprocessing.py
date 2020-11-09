@@ -36,7 +36,7 @@ def preprocess(text):
 def preprocess_qa(_df):
     df = _df.copy()
     df['question'] = df['question'].apply(preprocess)
-    df['answer'] = df['answer'].apply(preprocess)
+    df['text'] = df['text'].apply(preprocess)
     return df
 
 if __name__ == "__main__":

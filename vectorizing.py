@@ -20,13 +20,16 @@ class Word2Vec:
 
     def vectorize_sentence(self, sentence, minlen=None, maxlen=None):
         sentence = self.tokenizer(self.preprocessor(sentence))
+        last_unknown = False
         embs = []
         for token in sentence:
             if token in self.model.wv:
                 embs.append(self.model.wv[token])
-            else:
+                last_unknown = False
+            elif not last_unknown:
                 #embs.append(np.zeros(self.model.vector_size))
                 embs.append(self.model.wv['&'])
+                last_unknown = True
 
         embs = np.array(embs)
         if minlen is not None and embs.shape[0] < minlen:
