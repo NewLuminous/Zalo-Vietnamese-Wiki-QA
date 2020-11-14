@@ -1,3 +1,4 @@
+import config
 import os
 import numpy as np
 import pandas as pd
@@ -11,12 +12,9 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 
 class CRNN:
-    MIN_LENGTH_QUESTION = 20
-    MIN_LENGTH_TEXT = 64
-
     def __init__(self, question_encoder_shape=20, text_encoder_shape=70, learning_rate=0.001):
         self.vectorizer = vectorizing.get_vectorizer('word2vec')
-        self.num_features = 50
+        self.num_features = config.WORD_VECTOR_DIM
         self.question_encoder_shape = question_encoder_shape
         self.text_encoder_shape = text_encoder_shape
         # Tensorflow currently does not support Tensors with different lengths along a dimension.
@@ -54,7 +52,7 @@ class CRNN:
         return model
         
     def plot(self):
-        tf.keras.utils.plot_model(self.model, to_file='modeling/crnn.png', show_shapes=True, show_layer_names=True)
+        return tf.keras.utils.plot_model(self.model, to_file='modeling/crnn.png', show_shapes=True, show_layer_names=True)
         
     def DataGenerator(self, X, y):
         i = 0
@@ -68,28 +66,28 @@ class CRNN:
             y_batch = y.iloc[i: i + batch_size]
             self.vectorizer.fit(X_question)
             self.vectorizer.fit(X_text)
-            X_question_embs = self.vectorizer.transform(X_question, minlen=self.MIN_LENGTH_QUESTION)
-            X_text_embs = self.vectorizer.transform(X_text, minlen=self.MIN_LENGTH_TEXT)
+            X_question_embs = self.vectorizer.transform(X_question, minlen=config.MIN_LENGTH_QUESTION)
+            X_text_embs = self.vectorizer.transform(X_text, minlen=config.MIN_LENGTH_TEXT)
             if batch_size == 1:
                 X_question_embs = np.expand_dims(np.array(X_question_embs)[0], axis=0)
                 X_text_embs = np.expand_dims(np.array(X_text_embs)[0], axis=0)
             i += batch_size
             yield [np.array(X_question_embs), np.array(X_text_embs)], np.array(y_batch)
 
-    def fit(self, X, y):
+    def fit(self, X, y, epochs=50, early_stopping_rounds=7):
         X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=42)
         train_generator = self.DataGenerator(X_train, y_train)
         validation_generator = self.DataGenerator(X_val, y_val)
 
         model_dir = './checkpoints/'
         callbacks = [
-            tf.keras.callbacks.EarlyStopping(patience = 8, monitor = 'val_acc', restore_best_weights = True),
+            tf.keras.callbacks.EarlyStopping(patience=early_stopping_rounds, monitor='val_acc', restore_best_weights=True),
             tf.keras.callbacks.TensorBoard(log_dir = "./logs"),
             tf.keras.callbacks.ModelCheckpoint(filepath = os.path.join(model_dir, "weights-epoch{epoch:02d}-loss{val_loss:.2f}-acc{val_acc:.2f}.h5"))
             ]
-        history = self.model.fit(train_generator, epochs = 50, verbose = 1, callbacks = callbacks,
-            validation_data = validation_generator, steps_per_epoch = len(X_train)//self.batch_size,
-            validation_steps = len(X_val)//self.batch_size
+        history = self.model.fit(train_generator, epochs=epochs, verbose=1, callbacks=callbacks,
+            validation_data=validation_generator, steps_per_epoch=len(X_train)//self.batch_size,
+            validation_steps=len(X_val)//self.batch_size
             )
         
         return history
@@ -101,8 +99,8 @@ class CRNN:
         if type(X) is not pd.DataFrame:
             X = pd.DataFrame(np.reshape(X, (-1, 2)), columns=['question', 'text'])
             
-        X_question_embs = self.vectorizer.transform(X['question'], minlen=self.MIN_LENGTH_QUESTION)
-        X_text_embs = self.vectorizer.transform(X['text'], minlen=self.MIN_LENGTH_TEXT)
+        X_question_embs = self.vectorizer.transform(X['question'], minlen=config.MIN_LENGTH_QUESTION)
+        X_text_embs = self.vectorizer.transform(X['text'], minlen=config.MIN_LENGTH_TEXT)
         X_question_embs = X_question_embs.apply(lambda row: np.expand_dims(np.array(row), axis=0))
         X_text_embs = X_text_embs.apply(lambda row: np.expand_dims(np.array(row), axis=0))
         X_embs = pd.concat([X_question_embs, X_text_embs], axis=1)
