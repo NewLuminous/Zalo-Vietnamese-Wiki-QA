@@ -2,7 +2,7 @@ import config
 import os
 import numpy as np
 import pandas as pd
-import vectorizing
+import feature_extraction
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Model
@@ -13,7 +13,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStoppi
 
 class AttentionCRNN:
     def __init__(self, question_encoder_shape=64, text_encoder_shape=64, learning_rate=0.001):
-        self.vectorizer = vectorizing.get_vectorizer('word2vec')
+        self.vectorizer = feature_extraction.get('word2vec')
         self.num_features = config.WORD_VECTOR_DIM
         self.question_encoder_shape = question_encoder_shape
         self.text_encoder_shape = text_encoder_shape
@@ -21,9 +21,9 @@ class AttentionCRNN:
         self.batch_size = 1
         self.learning_rate = learning_rate
 
-        self.model = self.build_model()
+        self.classifier = self.build_classifier()
 
-    def build_model(self):
+    def build_classifier(self):
         input_question = Input(shape = (None, self.num_features))
         input_ans = Input(shape = (None, self.num_features))
         
@@ -54,7 +54,7 @@ class AttentionCRNN:
         return model
         
     def plot(self):
-        return tf.keras.utils.plot_model(self.model, to_file='modeling/crnn_attention.png', show_shapes=True, show_layer_names=True)
+        return tf.keras.utils.plot_model(self.classifier, to_file='modeling/crnn_attention.png', show_shapes=True, show_layer_names=True)
         
     def DataGenerator(self, X, y):
         i = 0
@@ -87,7 +87,7 @@ class AttentionCRNN:
             tf.keras.callbacks.TensorBoard(log_dir = "./logs"),
             tf.keras.callbacks.ModelCheckpoint(filepath = os.path.join(model_dir, "weights-epoch{epoch:02d}-loss{val_loss:.2f}-acc{val_acc:.2f}.h5"))
             ]
-        history = self.model.fit(train_generator, epochs=epochs, verbose=1, callbacks=callbacks,
+        history = self.classifier.fit(train_generator, epochs=epochs, verbose=1, callbacks=callbacks,
             validation_data=validation_generator, steps_per_epoch=len(X_train)//self.batch_size,
             validation_steps=len(X_val)//self.batch_size
             )
@@ -106,5 +106,5 @@ class AttentionCRNN:
         X_question_embs = X_question_embs.apply(lambda row: np.expand_dims(np.array(row), axis=0))
         X_text_embs = X_text_embs.apply(lambda row: np.expand_dims(np.array(row), axis=0))
         X_embs = pd.concat([X_question_embs, X_text_embs], axis=1)
-        y = X_embs.apply(lambda row: self.model.predict([row['question'], row['text']])[0], axis=1)
+        y = X_embs.apply(lambda row: self.classifier.predict([row['question'], row['text']])[0], axis=1)
         return y

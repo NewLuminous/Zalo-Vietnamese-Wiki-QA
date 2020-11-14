@@ -1,7 +1,7 @@
 import config
 import numpy as np
 import pandas as pd
-import vectorizing
+import feature_extraction
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Model
@@ -10,12 +10,12 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 class LogitWithEmbedding:
     def __init__(self, embedding_dim=64, batch_size=32):
-        self.vectorizer = vectorizing.get_vectorizer('label_encoder')
+        self.vectorizer = feature_extraction.get('label_encoder')
         self.embedding_dim = embedding_dim
         self.batch_size = batch_size
-        self.model = self.build_model()
+        self.classifier = self.build_classifier()
 
-    def build_model(self):
+    def build_classifier(self):
         input_question = Input(shape = (config.MAX_LENGTH_QUESTION))
         input_text = Input(shape = (config.MAX_LENGTH_TEXT))
         
@@ -39,7 +39,7 @@ class LogitWithEmbedding:
         return model
         
     def plot(self):
-        return tf.keras.utils.plot_model(self.model, to_file='modeling/logit_embedding.png', show_shapes=True, show_layer_names=True)
+        return tf.keras.utils.plot_model(self.classifier, to_file='modeling/logit_embedding.png', show_shapes=True, show_layer_names=True)
         
     def DataGenerator(self, X, y):
         i = 0
@@ -66,7 +66,7 @@ class LogitWithEmbedding:
         callbacks = [
             tf.keras.callbacks.EarlyStopping(patience=early_stopping_rounds, monitor='val_acc', restore_best_weights=True)
             ]
-        history = self.model.fit(train_generator, epochs=epochs, verbose=1, callbacks=callbacks,
+        history = self.classifier.fit(train_generator, epochs=epochs, verbose=1, callbacks=callbacks,
             validation_data=validation_generator, steps_per_epoch=len(X_train)//self.batch_size,
             validation_steps=len(X_val)//self.batch_size
             )
@@ -82,5 +82,5 @@ class LogitWithEmbedding:
             
         X_question_embs = self.vectorizer.transform(X['question'], maxlen=config.MAX_LENGTH_QUESTION)
         X_text_embs = self.vectorizer.transform(X['text'], maxlen=config.MAX_LENGTH_TEXT)
-        y = self.model.predict([X_question_embs, X_text_embs])
+        y = self.classifier.predict([X_question_embs, X_text_embs])
         return y

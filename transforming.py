@@ -1,5 +1,5 @@
 import config
-import vectorizing
+import feature_extraction
 import numpy as np
 from scipy import sparse
 
@@ -15,7 +15,7 @@ def vectorize_and_concatenate(df, vectorizer, do_fit_vectorizer=True):
     
 def vectorize_and_concatenate_qa(df, vectorizer, do_fit_vectorizer=True):
     # Size of vector depends on the input sentence's length
-    if type(vectorizer) in [vectorizing.Word2Vec, vectorizing.LabelEncoder]:
+    if type(vectorizer) in [feature_extraction.Word2Vec, feature_extraction.LabelEncoder]:
         if do_fit_vectorizer:
             for column in df.columns:
                 vectorizer.fit(df[column])
@@ -27,7 +27,7 @@ def vectorize_and_concatenate_qa(df, vectorizer, do_fit_vectorizer=True):
                                             minlen=config.MAX_LENGTH_TEXT,
                                             maxlen=config.MAX_LENGTH_TEXT)
                                             
-        if type(vectorizer) is vectorizing.Word2Vec:
+        if type(vectorizer) is feature_extraction.Word2Vec:
             df_question_embs = np.vstack([row.flatten() for row in df_question_embs])
             df_text_embs = np.vstack([row.flatten() for row in df_text_embs])
             

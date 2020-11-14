@@ -1,6 +1,6 @@
 import config
 import numpy as np
-import tokenizing
+import tokenization
 import preprocessing
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 import gensim
@@ -8,7 +8,7 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pickle
 
-VECTORIZERS = ['count', 'count-ngram', 'tfidf', 'tfidf-ngram',
+VECTORIZERS = ['bow', 'bow-ngram', 'tfidf', 'tfidf-ngram',
                'word2vec', 'word2vec-avg',
                'label_encoder']
 
@@ -138,44 +138,44 @@ class LabelEncoder:
         ---> [[22964,  1844,     0,     0,     0],
               [ 5579,  9869,  6020,  6020,  5579]]
 """
-def get_vectorizer(vectorizer='tfidf'):
-    if vectorizer == 'count':
-        return CountVectorizer(tokenizer=tokenizing.tokenize,
+def get(vectorizer='tfidf'):
+    if vectorizer == 'bow':
+        return CountVectorizer(tokenizer=tokenization.tokenize,
                               preprocessor=preprocessing.preprocess,
                               max_features=config.VOCAB_SIZE)
                               
-    elif vectorizer == 'count-ngram':
-        return CountVectorizer(tokenizer=tokenizing.tokenize,
+    elif vectorizer == 'bow-ngram':
+        return CountVectorizer(tokenizer=tokenization.tokenize,
                               preprocessor=preprocessing.preprocess,
                               max_features=config.VOCAB_SIZE,
                               ngram_range=(1, 2))
                               
     elif vectorizer == 'tfidf':
-        return TfidfVectorizer(tokenizer=tokenizing.tokenize,
+        return TfidfVectorizer(tokenizer=tokenization.tokenize,
                               preprocessor=preprocessing.preprocess,
                               max_features=config.VOCAB_SIZE)
                               
     elif vectorizer == 'tfidf-ngram':
-        return TfidfVectorizer(tokenizer=tokenizing.tokenize,
+        return TfidfVectorizer(tokenizer=tokenization.tokenize,
                               preprocessor=preprocessing.preprocess,
                               max_features=config.VOCAB_SIZE,
                               ngram_range=(1, 2))
                               
     elif vectorizer == 'word2vec':
-        return Word2Vec(tokenizer=tokenizing.tokenize,
+        return Word2Vec(tokenizer=tokenization.tokenize,
                         preprocessor=preprocessing.preprocess)
                         
     elif vectorizer == 'word2vec-avg':
-        return Word2VecAvg(tokenizer=tokenizing.tokenize,
+        return Word2VecAvg(tokenizer=tokenization.tokenize,
                            preprocessor=preprocessing.preprocess)
                            
     elif vectorizer == 'label_encoder':
-        return LabelEncoder(tokenizer=tokenizing.tokenize,
+        return LabelEncoder(tokenizer=tokenization.tokenize,
                             preprocessor=preprocessing.preprocess)
     else:
         raise Exception(f"Vectorizer '{vectorizer}' not found. Try 'vectorizing.VECTORIZERS' for available vectorizers.")
         
 if __name__ == "__main__":
-    vectorizer = get_vectorizer('count')
+    vectorizer = get('bow')
     vectorizer.fit(["It is true for all that that that that that that that refers to is not the same that that that that refers to."])
     print(vectorizer.transform(["That that is is that that is not is not. Is that it? It is."]))
