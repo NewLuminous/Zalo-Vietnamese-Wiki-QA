@@ -2,15 +2,16 @@ import feature_extraction
 import transforming
 import numpy as np
 import pandas as pd
-from sklearn.naive_bayes import MultinomialNB
+from sklearn import svm
 
-class navieBayes:
+
+class SVC_:
     def __init__(self, vectorizer='tfidf'):
         self.vectorizer = feature_extraction.get(vectorizer)
         self.classifier = self.build_classifier()
 
     def build_classifier(self):
-        return MultinomialNB()
+        return svm.SVC()
 
     def fit(self, X, y):
         X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer)
@@ -29,5 +30,3 @@ class navieBayes:
 
         X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer, do_fit_vectorizer=False)
         return self.classifier.predict_proba(X)
-
-

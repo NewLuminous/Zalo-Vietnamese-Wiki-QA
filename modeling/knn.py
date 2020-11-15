@@ -2,19 +2,20 @@ import feature_extraction
 import transforming
 import numpy as np
 import pandas as pd
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier
 
-class navieBayes:
-    def __init__(self, vectorizer='tfidf'):
+class KNN:
+    def __init__(self, vectorizer='tfidf', n_neighbors=3):
         self.vectorizer = feature_extraction.get(vectorizer)
-        self.classifier = self.build_classifier()
+        self.classifier = self.build_classifier(n_neighbors)
 
-    def build_classifier(self):
-        return MultinomialNB()
+    def build_classifier(self, n_neighbors):
+        return KNeighborsClassifier(n_neighbors = n_neighbors)
 
     def fit(self, X, y):
         X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer)
         self.classifier.fit(X, y)
+
 
     def predict(self, X):
         if type(X) is not pd.DataFrame:
