@@ -5,8 +5,9 @@ from .crnn_attention import AttentionCRNN
 from .navie_bayes import navieBayes
 from .knn import KNN
 from .svc import SVC_
+from .random_forest import randomForest
 
-MODELS = ['logit', 'logit-embedding', 'crnn', 'crnn-attention', 'navie-bayes','knn','svc']
+MODELS = ['logit', 'logit-embedding', 'crnn', 'crnn-attention', 'navie-bayes','knn','svc', 'random-forest']
 
 def get_model(model='logit'):
     if model == 'logit':
@@ -23,5 +24,7 @@ def get_model(model='logit'):
         return KNN
     elif model == 'svc':
         return SVC_
+    elif model == 'random-forest':
+        return randomForest
     else:
         raise Exception(f"Model '{model}' not found. Try 'modeling.MODELS' for available models.")
