@@ -173,7 +173,7 @@ def get(vectorizer='tfidf'):
         return LabelEncoder(tokenizer=tokenization.tokenize,
                             preprocessor=preprocessing.preprocess)
     else:
-        raise Exception(f"Vectorizer '{vectorizer}' not found. Try 'vectorizing.VECTORIZERS' for available vectorizers.")
+        raise Exception(f"Vectorizer '{vectorizer}' not found. Try 'feature_extraction.VECTORIZERS' for available vectorizers.")
         
 if __name__ == "__main__":
     vectorizer = get('bow')
