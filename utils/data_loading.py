@@ -88,22 +88,46 @@ class SquadLoader(QADataLoader):
         if simplify:
             return self.simplify_dataset()
         return self.data
-
-def load(src=['zaloai']):
+        
+def load_train(src=['zaloai']):
     dataset = pd.DataFrame()
     for source in src:
         if source == 'zaloai':
-            dataset = dataset.append(ZaloLoader().read_csv("data/zaloai/train.csv", simplify=True))
+            input = ZaloLoader().read_csv("data/zaloai/train.csv", simplify=True)
+            dataset = dataset.append(input[:int(len(input)*0.9)])
         elif source == 'squad':
             dataset = dataset.append(SquadLoader().read_csv("data/squad/train-v2.0_part_1.csv", simplify=True))
             dataset = dataset.append(SquadLoader().read_csv("data/squad/train-v2.0_part_2.csv", simplify=True))
-            dataset = dataset.append(SquadLoader().read_csv("data/squad/dev-v2.0.csv", simplify=True))
         elif source == 'mailong25':
-            dataset = dataset.append(SquadLoader().read_csv("data/mailong25/squad-v2.0-mailong25.csv", simplify=True))
+            input = SquadLoader().read_csv("data/mailong25/squad-v2.0-mailong25.csv", simplify=True)
+            dataset = dataset.append(input[:int(len(input)*0.9)])
         elif source == 'facebook':
             dataset = dataset.append(SquadLoader().read_csv("data/facebook/test-context-vi-question-vi_fb.csv", simplify=True))
+        else:
+            raise Exception(f"Source '{source}' not found. Try 'utils.data_loading.SOURCES' for available sources.")
+    
+    return dataset
+    
+def load_test(src=['zaloai']):
+    dataset = pd.DataFrame()
+    for source in src:
+        if source == 'zaloai':
+            input = ZaloLoader().read_csv("data/zaloai/train.csv", simplify=True)
+            dataset = dataset.append(input[int(len(input)*0.9):])
+        elif source == 'squad':
+            dataset = dataset.append(SquadLoader().read_csv("data/squad/dev-v2.0.csv", simplify=True))
+        elif source == 'mailong25':
+            input = SquadLoader().read_csv("data/mailong25/squad-v2.0-mailong25.csv", simplify=True)
+            dataset = dataset.append(input[int(len(input)*0.9):])
+        elif source == 'facebook':
             dataset = dataset.append(SquadLoader().read_csv("data/facebook/dev-context-vi-question-vi_fb.csv", simplify=True))
         else:
             raise Exception(f"Source '{source}' not found. Try 'utils.data_loading.SOURCES' for available sources.")
     
+    return dataset
+
+def load(src=['zaloai']):
+    dataset = pd.DataFrame()
+    dataset = dataset.append(load_train(src))
+    dataset = dataset.append(load_test(src))
     return dataset
