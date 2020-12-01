@@ -9,7 +9,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pickle
 
 VECTORIZERS = ['bow', 'bow-ngram', 'tfidf', 'tfidf-ngram',
-               'word2vec', 'word2vec-avg',
+               'word2vec', 'word2vec-avg', 'phobert', 'phobert-avg',
                'label_encoder']
 
 class Word2Vec:
@@ -71,6 +71,71 @@ class Word2VecAvg(Word2Vec):
 
         embs = np.array(embs).mean(axis=0)
 
+        return embs
+        
+    def transform(self, sentences):
+        if self.model is None:
+            self.fit(sentences)
+        return np.vstack([self.vectorize_sentence(sentence) for sentence in sentences])
+
+class BPE():
+    bpe_codes = 'PhoBERT_base_fairseq/bpe.codes'
+        
+class PhoBERT:
+    def __init__(self, tokenizer, preprocessor):
+        self.tokenizer = tokenizer
+        self.preprocessor = preprocessor
+        self.model = None
+
+    def fit(self, sentences):
+        if self.model is None:
+            from fairseq.models.roberta import RobertaModel
+            from fairseq.data.encoders.fastbpe import fastBPE
+            
+            self.model = RobertaModel.from_pretrained('PhoBERT_base_fairseq', checkpoint_file='model.pt')
+            self.model.eval()
+            
+            args = BPE()
+            self.model.bpe = fastBPE(args)
+        return self
+
+    def vectorize_sentence(self, sentence, minlen=None, maxlen=None):
+        sentence = self.tokenizer(self.preprocessor(sentence))
+        tokens = self.model.encode(" ".join(sentence))
+        
+        embs = self.model.extract_features(tokens)
+        embs = embs.detach().numpy()[0]
+
+        embs = np.array(embs)
+        if minlen is not None and embs.shape[0] < minlen:
+            paddings = np.ceil(minlen / embs.shape[0]) - 1
+            d = np.copy(embs)
+            for i in range(int(paddings)):
+                embs = np.concatenate((embs, d))
+            embs = embs[0: minlen]
+                
+        if maxlen is not None and embs.shape[0] > maxlen:
+            embs = embs[0: maxlen]
+
+        return embs
+
+    def transform(self, sentences, minlen=None, maxlen=None):
+        if self.model is None:
+            self.fit(sentences)
+        return np.array([self.vectorize_sentence(sentence, minlen, maxlen) for sentence in sentences])
+
+class PhoBERTAvg(PhoBERT):
+    def __init__(self, tokenizer, preprocessor):
+        super().__init__(tokenizer, preprocessor)
+
+    def vectorize_sentence(self, sentence):
+        sentence = self.tokenizer(self.preprocessor(sentence))
+        tokens = self.model.encode(" ".join(sentence))
+        
+        embs = self.model.extract_features(tokens)
+        embs = embs.detach().numpy()[0]
+
+        embs = np.array(embs).mean(axis=0)
         return embs
         
     def transform(self, sentences):
@@ -156,7 +221,7 @@ def get(vectorizer='tfidf'):
                               max_features=config.VOCAB_SIZE)
                               
     elif vectorizer == 'tfidf-ngram':
-        return TfidfVectorizer(tokenizer=tokenization.tokenize,
+        return PhoBERTAvg(tokenizer=tokenization.tokenize,
                               preprocessor=preprocessing.preprocess,
                               max_features=config.VOCAB_SIZE,
                               ngram_range=(1, 2))
@@ -168,6 +233,14 @@ def get(vectorizer='tfidf'):
     elif vectorizer == 'word2vec-avg':
         return Word2VecAvg(tokenizer=tokenization.tokenize,
                            preprocessor=preprocessing.preprocess)
+
+    elif vectorizer == 'phobert':
+        return PhoBERT(tokenizer=tokenization.tokenize,
+                       preprocessor=preprocessing.preprocess)
+
+    elif vectorizer == 'phobert-avg':
+        return PhoBERTAvg(tokenizer=tokenization.tokenize,
+                          preprocessor=preprocessing.preprocess)
                            
     elif vectorizer == 'label_encoder':
         return LabelEncoder(tokenizer=tokenization.tokenize,

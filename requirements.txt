@@ -1,5 +1,8 @@
+fairseq==0.10.1
+fastBPE==0.1.0
 gensim==3.8.3
 googletrans==3.0.0
+lightgbm=3.1.0
 numpy==1.19.3
 pydot==1.4.1
 pyvi==0.1

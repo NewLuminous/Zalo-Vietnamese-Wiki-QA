@@ -130,3 +130,5 @@ dmypy.json
 
 # Logging
 logs/
+
+PhoBERT_base_fairseq/model.pt

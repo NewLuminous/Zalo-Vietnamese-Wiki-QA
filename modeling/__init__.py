@@ -7,13 +7,16 @@ from .rocchio import Rocchio
 from .knn import KNN
 from .svc import SVC_
 from .random_forest import randomForest
+from .extra_trees import ExtraTrees
+from .lightgbm import LightGBM
+from .xgboost import XGBoost
 
 MODELS = [
     'navie-bayes',
     'rocchio', 'knn',
     'logit', 'logit-embedding',
     'svc',
-    'random-forest',
+    'random-forest', 'extra_trees', 'lightgbm', 'xgboost',
     'crnn', 'crnn-attention',
 ]
 
@@ -32,6 +35,12 @@ def get_model(model='logit'):
         return SVC_
     elif model == 'random-forest':
         return randomForest
+    elif model == 'extra_trees':
+        return ExtraTrees
+    elif model == 'lightgbm':
+        return LightGBM
+    elif model == 'xgboost':
+        return XGBoost
     elif model == 'crnn':
         return CRNN
     elif model == 'crnn-attention':

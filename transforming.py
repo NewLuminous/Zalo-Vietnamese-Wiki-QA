@@ -15,7 +15,8 @@ def vectorize_and_concatenate(df, vectorizer, do_fit_vectorizer=True):
     
 def vectorize_and_concatenate_qa(df, vectorizer, do_fit_vectorizer=True):
     # Size of vector depends on the input sentence's length
-    if type(vectorizer) in [feature_extraction.Word2Vec, feature_extraction.LabelEncoder]:
+    if type(vectorizer) in [feature_extraction.Word2Vec, feature_extraction.PhoBERT,
+                            feature_extraction.LabelEncoder]:
         if do_fit_vectorizer:
             for column in df.columns:
                 vectorizer.fit(df[column])
