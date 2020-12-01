@@ -5,7 +5,7 @@ import feature_extraction
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Flatten, Embedding, concatenate
+from tensorflow.keras.layers import Input, Dense, Flatten, Embedding, concatenate, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 
 class LogitWithEmbedding:
@@ -30,7 +30,8 @@ class LogitWithEmbedding:
         merge = concatenate([question_flatten, text_flatten], axis = 1)
         
         dense_1 = Dense(10, activation = "relu")(merge)
-        dense_2 = Dense(1, activation ="sigmoid")(dense_1)
+        dropout_1 = Dropout(0.8)(dense_1)
+        dense_2 = Dense(1, activation ="sigmoid")(dropout_1)
 
         model = Model(inputs = [input_question, input_text], outputs = dense_2)
         model.compile(optimizer='adam', loss="binary_crossentropy", metrics=["acc"])

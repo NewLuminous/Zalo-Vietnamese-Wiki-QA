@@ -103,8 +103,8 @@ class AttentionCRNN:
             
         X_question_embs = self.vectorizer.transform(X['question'], minlen=config.MIN_LENGTH_QUESTION)
         X_text_embs = self.vectorizer.transform(X['text'], minlen=config.MIN_LENGTH_TEXT)
-        X_question_embs = X_question_embs.apply(lambda row: np.expand_dims(np.array(row), axis=0))
-        X_text_embs = X_text_embs.apply(lambda row: np.expand_dims(np.array(row), axis=0))
+        X_question_embs = pd.Series(X_question_embs, name='question').apply(lambda row: np.expand_dims(np.array(row), axis=0))
+        X_text_embs = pd.Series(X_text_embs, name='text').apply(lambda row: np.expand_dims(np.array(row), axis=0))
         X_embs = pd.concat([X_question_embs, X_text_embs], axis=1)
         y = X_embs.apply(lambda row: self.classifier.predict([row['question'], row['text']])[0], axis=1)
         return y

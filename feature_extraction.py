@@ -130,6 +130,8 @@ class PhoBERTAvg(PhoBERT):
 
     def vectorize_sentence(self, sentence):
         sentence = self.tokenizer(self.preprocessor(sentence))
+        if len(sentence) > 256:
+            sentence = sentence[: 256]
         tokens = self.model.encode(" ".join(sentence))
         
         embs = self.model.extract_features(tokens)
@@ -221,7 +223,7 @@ def get(vectorizer='tfidf'):
                               max_features=config.VOCAB_SIZE)
                               
     elif vectorizer == 'tfidf-ngram':
-        return PhoBERTAvg(tokenizer=tokenization.tokenize,
+        return TfidfVectorizer(tokenizer=tokenization.tokenize,
                               preprocessor=preprocessing.preprocess,
                               max_features=config.VOCAB_SIZE,
                               ngram_range=(1, 2))

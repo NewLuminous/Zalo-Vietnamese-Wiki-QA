@@ -2,18 +2,15 @@ import feature_extraction
 import transforming
 import numpy as np
 import pandas as pd
-from sklearn import svm
+from sklearn.naive_bayes import MultinomialNB
 
-
-class SVC_:
-    def __init__(self, vectorizer='tfidf', kernel='rbf', degree=3):
+class naiveBayes:
+    def __init__(self, vectorizer='tfidf'):
         self.vectorizer = feature_extraction.get(vectorizer)
-        self.classifier = self.build_classifier(kernel, degree)
+        self.classifier = self.build_classifier()
 
-    def build_classifier(self, kernel, degree):
-        return svm.SVC(kernel=kernel, degree=degree, decision_function_shape='ovr',
-                       C=1, coef0=0.0, gamma=0.01, max_iter=-1, tol=0.001, cache_size=200,
-                       class_weight=None, probability=True, random_state=None, shrinking=True, verbose=False)
+    def build_classifier(self):
+        return MultinomialNB()
 
     def fit(self, X, y):
         X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer)
@@ -32,3 +29,5 @@ class SVC_:
 
         X = transforming.vectorize_and_concatenate_qa(X, self.vectorizer, do_fit_vectorizer=False)
         return self.classifier.predict_proba(X)
+
+
